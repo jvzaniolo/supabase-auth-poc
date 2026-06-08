@@ -85,6 +85,14 @@
   outline: 3px solid var(--accent-bg);
 }
 
+.auth-form input[name='otp'] {
+  font-family: var(--mono);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  text-align: center;
+}
+
 .auth-form input + label {
   margin-top: 8px;
 }
@@ -181,6 +189,11 @@
   background: transparent;
   font: 700 15px/1 var(--sans);
   cursor: pointer;
+}
+
+.text-button:disabled {
+  cursor: wait;
+  opacity: 0.6;
 }
 
 .status-message,

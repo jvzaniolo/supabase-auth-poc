@@ -56,17 +56,12 @@ Deno.serve(async (req) => {
   try {
     const {
       user,
-      email_data: { token, token_hash, redirect_to, email_action_type, site_url },
+      email_data: { token },
     } = verifyHookPayload(payload, req.headers)
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? site_url
     const html = await renderAsync(
       React.createElement(MagicLinkEmail, {
-        supabaseUrl,
         token,
-        tokenHash: token_hash,
-        redirectTo: redirect_to,
-        emailActionType: email_action_type,
       }),
     )
 

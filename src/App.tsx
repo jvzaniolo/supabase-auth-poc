@@ -4,11 +4,12 @@ import type { User } from '@supabase/supabase-js'
 import { supabase } from './utils/supabase'
 import './App.css'
 
-type AuthView = 'email' | 'check-email' | 'password'
+type AuthView = 'email' | 'otp' | 'password'
 
 function App() {
   const [view, setView] = useState<AuthView>('email')
   const [email, setEmail] = useState('')
+  const [otp, setOtp] = useState('')
   const [password, setPassword] = useState('')
   const [user, setUser] = useState<User | null>(null)
   const [message, setMessage] = useState('')
@@ -47,8 +48,7 @@ function App() {
     }
   }
 
-  async function handleEmailSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  async function sendOtpCode() {
     setError('')
     setMessage('')
     setIsLoading(true)
@@ -63,8 +63,35 @@ function App() {
     if (error) {
       setError(error.message)
     } else {
-      setView('check-email')
-      setMessage('We sent a sign-in link to your email.')
+      setOtp('')
+      setView('otp')
+      setMessage('We sent a one-time code to your email.')
+    }
+
+    setIsLoading(false)
+  }
+
+  async function handleEmailSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    await sendOtpCode()
+  }
+
+  async function handleOtpSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setError('')
+    setMessage('')
+    setIsLoading(true)
+
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token: otp.replace(/\s/g, ''),
+      type: 'email',
+    })
+
+    if (error) {
+      setError(error.message)
+    } else {
+      setOtp('')
     }
 
     setIsLoading(false)
@@ -122,7 +149,7 @@ function App() {
           <>
             <span className="eyebrow">Supabase auth POC</span>
             <h1 id="auth-title">Sign in to continue.</h1>
-            <p className="lede">Use Google or get a secure email sign-in link.</p>
+            <p className="lede">Use Google or get a secure one-time email code.</p>
 
             <button
               type="button"
@@ -153,26 +180,48 @@ function App() {
                 required
               />
               <button type="submit" className="primary-button" disabled={isLoading}>
-                {isLoading ? 'Sending link...' : 'Continue with email'}
+                {isLoading ? 'Sending code...' : 'Continue with email'}
               </button>
             </form>
           </>
         )}
 
-        {view === 'check-email' && (
+        {view === 'otp' && (
           <>
             <span className="eyebrow">Check your inbox</span>
-            <h1 id="auth-title">Follow the email instructions.</h1>
+            <h1 id="auth-title">Enter your login code.</h1>
             <p className="lede">
-              Open the message we sent to <strong>{email}</strong> to complete sign in.
+              Use the one-time code we sent to <strong>{email}</strong>.
             </p>
 
+            <form className="auth-form" onSubmit={handleOtpSubmit}>
+              <label htmlFor="otp">One-time code</label>
+              <input
+                id="otp"
+                name="otp"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                placeholder="12345678"
+                value={otp}
+                onChange={(event) => setOtp(event.target.value)}
+                required
+              />
+              <button type="submit" className="primary-button" disabled={isLoading}>
+                {isLoading ? 'Verifying code...' : 'Verify code'}
+              </button>
+            </form>
+
+            <button type="button" className="text-button" onClick={() => setView('password')}>
+              Continue with password
+            </button>
             <button
               type="button"
-              className="primary-button"
-              onClick={() => setView('password')}
+              className="text-button"
+              disabled={isLoading}
+              onClick={sendOtpCode}
             >
-              Continue with password
+              Resend code
             </button>
             <button type="button" className="text-button" onClick={() => setView('email')}>
               Use another email

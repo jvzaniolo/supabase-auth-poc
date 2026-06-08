@@ -19,13 +19,14 @@ VITE_SUPABASE_PUBLISHABLE_KEY=
 ## Auth flow
 
 - Continue with Google through Supabase OAuth.
-- Continue with email sends a passwordless magic link.
-- After email submission, the app shows a check-your-inbox screen.
+- Continue with email sends a passwordless one-time code.
+- After email submission, the app shows an OTP input.
+- Submitting the OTP signs the user in with `supabase.auth.verifyOtp`.
 - Continue with password signs in with email and password.
 
 ## Custom Auth Emails
 
-The custom passwordless email is implemented as a Supabase Edge Function:
+The custom passwordless OTP email is implemented as a Supabase Edge Function:
 
 ```txt
 supabase/functions/send-auth-email/index.ts

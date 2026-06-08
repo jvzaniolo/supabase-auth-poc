@@ -1,6 +1,5 @@
 import {
   Body,
-  Button,
   Container,
   Head,
   Heading,
@@ -12,41 +11,21 @@ import {
 import React from 'npm:react@18.3.1'
 
 type MagicLinkEmailProps = {
-  supabaseUrl: string
   token: string
-  tokenHash: string
-  redirectTo: string
-  emailActionType: string
 }
 
-export function MagicLinkEmail({
-  supabaseUrl,
-  token,
-  tokenHash,
-  redirectTo,
-  emailActionType,
-}: MagicLinkEmailProps) {
-  const verifyUrl = new URL('/auth/v1/verify', supabaseUrl)
-
-  verifyUrl.searchParams.set('token', tokenHash)
-  verifyUrl.searchParams.set('type', emailActionType)
-  verifyUrl.searchParams.set('redirect_to', redirectTo)
-
+export function MagicLinkEmail({ token }: MagicLinkEmailProps) {
   return (
     <Html>
       <Head />
-      <Preview>Your secure sign-in link is ready.</Preview>
+      <Preview>Your one-time login code is ready.</Preview>
       <Body style={styles.body}>
         <Container style={styles.container}>
           <Section style={styles.mark}>S</Section>
-          <Heading style={styles.heading}>Sign in to continue</Heading>
+          <Heading style={styles.heading}>Your login code</Heading>
           <Text style={styles.text}>
-            Use this private link to finish signing in to Supabase Auth POC.
+            Enter this code in Supabase Auth POC to finish signing in.
           </Text>
-          <Button href={verifyUrl.toString()} style={styles.button}>
-            Sign in securely
-          </Button>
-          <Text style={styles.text}>Or enter this one-time code:</Text>
           <Text style={styles.code}>{token}</Text>
           <Text style={styles.footer}>
             If you did not request this email, you can safely ignore it.
@@ -95,19 +74,6 @@ const styles = {
     color: '#68716b',
     fontSize: '16px',
     lineHeight: '24px',
-  },
-  button: {
-    display: 'block',
-    width: '100%',
-    margin: '0 0 24px',
-    padding: '14px 18px',
-    borderRadius: '6px',
-    backgroundColor: '#205a45',
-    color: '#f8fbf8',
-    fontSize: '15px',
-    fontWeight: 700,
-    textAlign: 'center' as const,
-    textDecoration: 'none',
   },
   code: {
     margin: '0 0 24px',
