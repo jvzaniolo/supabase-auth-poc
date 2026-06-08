@@ -73,3 +73,19 @@ https://<project-ref>.supabase.co/functions/v1/send-auth-email
 5. Keep email passwordless enabled so `supabase.auth.signInWithOtp({ email })` triggers the hook.
 
 The React app still calls Supabase normally. Supabase invokes this function whenever it needs to send the auth email.
+
+## Redirect URLs
+
+The production app URL is:
+
+```txt
+https://supabase-auth-poc.vercel.app
+```
+
+Add these URLs in Supabase Dashboard under `Authentication` -> `URL Configuration`:
+
+```txt
+https://supabase-auth-poc.vercel.app
+http://127.0.0.1:5173
+http://127.0.0.1:5174
+```
