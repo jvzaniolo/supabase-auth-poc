@@ -18,10 +18,28 @@ type SendEmailPayload = {
 }
 
 const resend = new Resend(Deno.env.get('RESEND_API_KEY') ?? '')
-const hookSecret = (Deno.env.get('SEND_EMAIL_HOOK_SECRET') ?? '').replace(
+const rawHookSecret = Deno.env.get('SEND_EMAIL_HOOK_SECRET') ?? ''
+const signingSecret = rawHookSecret.replace(
   'v1,whsec_',
   '',
 )
+
+function verifyHookPayload(payload: string, headers: Headers): SendEmailPayload {
+  const headerRecord = Object.fromEntries(headers)
+
+  try {
+    return new Webhook(signingSecret).verify(payload, headerRecord) as SendEmailPayload
+  } catch (standardWebhookError) {
+    const authorization = headers.get('authorization')
+    const expectedBearerToken = `Bearer ${rawHookSecret}`
+
+    if (authorization === expectedBearerToken || authorization === rawHookSecret) {
+      return JSON.parse(payload) as SendEmailPayload
+    }
+
+    throw standardWebhookError
+  }
+}
 
 Deno.serve(async (req) => {
   if (req.method !== 'POST') {
@@ -29,14 +47,12 @@ Deno.serve(async (req) => {
   }
 
   const payload = await req.text()
-  const headers = Object.fromEntries(req.headers)
-  const webhook = new Webhook(hookSecret)
 
   try {
     const {
       user,
       email_data: { token, token_hash, redirect_to, email_action_type, site_url },
-    } = webhook.verify(payload, headers) as SendEmailPayload
+    } = verifyHookPayload(payload, req.headers)
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? site_url
     const html = await renderAsync(
