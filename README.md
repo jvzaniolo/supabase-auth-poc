@@ -1,73 +1,75 @@
-# React + TypeScript + Vite
+# Supabase Auth POC
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+CSR React app built with Vite and Supabase Auth.
 
-Currently, two official plugins are available:
+## Local app
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```sh
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+The app uses these Vite env vars:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```sh
+VITE_SUPABASE_URL=
+VITE_SUPABASE_PUBLISHABLE_KEY=
 ```
+
+## Auth flow
+
+- Continue with Google through Supabase OAuth.
+- Continue with email sends a passwordless magic link.
+- After email submission, the app shows a check-your-inbox screen.
+- Continue with password signs in with email and password.
+
+## Custom Auth Emails
+
+The custom passwordless email is implemented as a Supabase Edge Function:
+
+```txt
+supabase/functions/send-auth-email/index.ts
+supabase/functions/send-auth-email/_templates/magic-link.tsx
+```
+
+It uses:
+
+- Supabase Auth Send Email Hook
+- React Email
+- Resend
+- `standardwebhooks` verification for the Supabase hook payload
+
+### Required secrets
+
+Set these in the Supabase project before deploying/using the hook:
+
+```sh
+supabase secrets set RESEND_API_KEY="re_..."
+supabase secrets set SEND_EMAIL_HOOK_SECRET="v1,whsec_..."
+supabase secrets set AUTH_EMAIL_FROM="Supabase Auth POC <auth@yourdomain.com>"
+```
+
+`AUTH_EMAIL_FROM` is optional in code, but production email should use a verified Resend domain.
+
+### Deploy function
+
+```sh
+supabase functions deploy send-auth-email --no-verify-jwt
+```
+
+### Configure Supabase Auth hook
+
+In the Supabase Dashboard:
+
+1. Go to `Authentication` -> `Hooks`.
+2. Enable `Send Email`.
+3. Set the hook URL to:
+
+```txt
+https://<project-ref>.supabase.co/functions/v1/send-auth-email
+```
+
+4. Copy the generated hook secret and set it as `SEND_EMAIL_HOOK_SECRET`.
+5. Keep email passwordless enabled so `supabase.auth.signInWithOtp({ email })` triggers the hook.
+
+The React app still calls Supabase normally. Supabase invokes this function whenever it needs to send the auth email.
