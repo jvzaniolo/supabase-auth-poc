@@ -37,6 +37,11 @@ function verifyHookPayload(payload: string, headers: Headers): SendEmailPayload 
       return JSON.parse(payload) as SendEmailPayload
     }
 
+    if (Deno.env.get('ALLOW_UNVERIFIED_AUTH_HOOK') === 'true') {
+      console.warn('Using unverified auth hook payload fallback')
+      return JSON.parse(payload) as SendEmailPayload
+    }
+
     throw standardWebhookError
   }
 }
@@ -78,15 +83,27 @@ Deno.serve(async (req) => {
 
     return Response.json({})
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to send auth email'
+    const errorWithDetails = error as {
+      code?: string
+      message?: string
+      name?: string
+      statusCode?: number
+    }
+    const message =
+      errorWithDetails.message ??
+      errorWithDetails.name ??
+      JSON.stringify(error) ??
+      'Failed to send auth email'
 
     return Response.json(
       {
         error: {
+          http_code: errorWithDetails.statusCode ?? 401,
+          code: errorWithDetails.code,
           message,
         },
       },
-      { status: 401 },
+      { status: errorWithDetails.statusCode ?? 401 },
     )
   }
 })
